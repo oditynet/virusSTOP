@@ -22,3 +22,4 @@ static int prepare_binprm(struct linux_binprm *bprm)
 Пробегаемся по всем файлам в системе и выставляем нужный бит: sudo setfattr -n user.bitX -v 1 /usr/bin/base64
 пересобираем ядро, в fstab для ext4 добавляем поддержку аттрибутов  'user_xattr' и перезагружаемся.
 
+<img src="https://github.com/oditynet/virusSTOP/blob/main/result.png" title="example" width="800" />
