@@ -19,7 +19,11 @@ static int prepare_binprm(struct linux_binprm *bprm)
 
 Мы патчим код исполнения программы и не даем ему запуститься,если не выставлен аттрибут bitX.
 
-Пробегаемся по всем файлам в системе и выставляем нужный бит: sudo setfattr -n user.bitX -v 1 /usr/bin/base64
+Пробегаемся по всем файлам в системе и выставляем нужный бит: 
+```bash
+sudo setfattr -n user.bitX -v 1 /usr/bin/base64
+```
+
 пересобираем ядро, в fstab для ext4 добавляем поддержку аттрибутов  'user_xattr' и перезагружаемся.
 
 <img src="https://github.com/oditynet/virusSTOP/blob/main/result.png" title="example" width="800" />
