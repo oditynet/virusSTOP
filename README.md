@@ -27,8 +27,9 @@ static int set_bitx_attr(struct dentry *dentry)
 {
     const char value = '0'; // Значение атрибута
     int error;
-    
-    error = vfs_setxattr(&init_user_ns, dentry, "user.bitX", &value, 1, XATTR_CREATE);
+
+    error = vfs_setxattr(&nop_mnt_idmap, dentry, "user.bitX", &value, 1, XATTR_CREATE);
+    //error = vfs_setxattr(&init_user_ns, dentry, "user.bitX", &value, 1, XATTR_CREATE);
     
     if (error && error != -ENODATA && error != -EOPNOTSUPP) {
         printk(KERN_WARNING "Failed to set bitX attribute for %s: %d\n",
