@@ -17,6 +17,41 @@ static int prepare_binprm(struct linux_binprm *bprm)
         }
 ```
 
+Следующий код устанввливаем всем новым файлам автоматом аттрибут запрещающий выполняться:
+
+```bash
+#include <linux/xattr.h>
+
+// Добавить в начало файла
+static int set_bitx_attr(struct dentry *dentry)
+{
+    const char value = '0'; // Значение атрибута
+    int error;
+    
+    error = vfs_setxattr(&init_user_ns, dentry, "user.bitX", &value, 1, XATTR_CREATE);
+    
+    if (error && error != -ENODATA && error != -EOPNOTSUPP) {
+        printk(KERN_WARNING "Failed to set bitX attribute for %s: %d\n",
+               dentry->d_name.name, error);
+    }
+    return error;
+}
+
+// Модифицировать функцию vfs_create
+int vfs_create(struct mnt_idmap *idmap, struct inode *dir,
+               struct dentry *dentry, umode_t mode, bool want_excl)
+{
+    ...
+    error = dir->i_op->create(idmap, dir, dentry, mode, want_excl);
+    if (!error) {
+        // Установка bitX=0 после успешного создания файла
+        set_bitx_attr(dentry);
+    }
+    ...
+}
+```
+
+
 Мы патчим код исполнения программы и не даем ему запуститься,если не выставлен аттрибут bitX.
 
 Пробегаемся по всем файлам в системе и выставляем нужный бит: 
