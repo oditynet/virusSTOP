@@ -5,21 +5,39 @@
 
 vim fs/exec.c
 ```bash
+
 #include <linux/xattr.h>
 #include <linux/mnt_idmapping.h>
+#include <linux/fs.h>
+#include <linux/fs_types.h>
 
 static int prepare_binprm(struct linux_binprm *bprm)
 {
     loff_t pos = 0;
     ssize_t size;
     char value[2];
-    
-    struct dentry *dentry = file_dentry(bprm->file);
-    struct mnt_idmap *idmap = file_mnt_idmap(bprm->file);
+    struct dentry *dentry;
+    struct mnt_idmap *idmap;
+    struct inode *inode;
+    const char *fstype;
 
-    // Проверка на случай ошибок
-    if (!idmap) {
-        printk(KERN_WARNING "Failed to get idmap for file: %s\n", dentry->d_name.name);
+    dentry = file_dentry(bprm->file);
+    idmap = file_mnt_idmap(bprm->file);
+    inode = d_inode(dentry);
+    fstype = inode->i_sb->s_type->name;
+
+    // Критическое исключение для tmpfs и других виртуальных ФС
+    if (strcmp(fstype, "tmpfs") == 0 ||
+        strcmp(fstype, "ramfs") == 0 ||
+        strcmp(fstype, "devtmpfs") == 0 ||
+        strcmp(fstype, "proc") == 0 ||
+        strcmp(fstype, "sysfs") == 0 ||
+        strcmp(fstype, "cgroup") == 0) {
+        goto read_file;
+    }
+
+    if (WARN_ON(!idmap)) {
+        printk(KERN_ERR "[bitX] Failed to get idmap for file: %s\n", dentry->d_name.name);
         return -EPERM;
     }
 
@@ -28,20 +46,20 @@ static int prepare_binprm(struct linux_binprm *bprm)
     if (size == 1) {
         value[1] = '\0';
         if (value[0] == '0') {
-            printk(KERN_WARNING "Execution denied: %s has user.bitX=0\n",
+            printk(KERN_WARNING "[bitX] Execution denied: %s has user.bitX=0\n",
                    dentry->d_name.name);
             return -EPERM;
         }
-    } else if (size == -ENODATA) { // if attrr is not install
-        printk(KERN_WARNING "Execution denied: %s missing user.bitX attribute\n",
-               dentry->d_name.name);
-        return -EPERM;
+    } else if (size == -ENODATA) {
+        printk(KERN_INFO "[bitX] Execution not allowed (no bitX): %s\n", dentry->d_name.name);
+         return -EPERM;
     } else if (size < 0) {
-        printk(KERN_WARNING "Execution denied: error %ld reading user.bitX for %s\n",
-               size, dentry->d_name.name);
-        return -EPERM;
+        printk(KERN_WARNING "[bitX] Error %ld reading user.bitX for %s (FS: %s)\n",
+               size, dentry->d_name.name, fstype);
+        goto read_file;
     }
-    
+
+read_file:
     memset(bprm->buf, 0, BINPRM_BUF_SIZE);
     return kernel_read(bprm->file, bprm->buf, BINPRM_BUF_SIZE, &pos);
 }
@@ -50,42 +68,89 @@ static int prepare_binprm(struct linux_binprm *bprm)
 Следующий код устанввливаем всем новым файлам автоматом аттрибут запрещающий выполняться:
 
 ```bash
-#include <linux/xattr.h>
-
 int vfs_create(struct mnt_idmap *idmap, struct inode *dir,
                struct dentry *dentry, umode_t mode, bool want_excl)
 {
-    int error;
+    // ... существующий код ...
 
-    error = may_create(idmap, dir, dentry);
-    if (error)
-        return error;
-
-    if (!dir->i_op->create)
-        return -EACCES;
-
-    mode = vfs_prepare_mode(idmap, dir, mode, S_IALLUGO, S_IFREG);
-    error = security_inode_create(dir, dentry, mode);
-    if (error)
-        return error;
-        
-    error = dir->i_op->create(idmap, dir, dentry, mode, want_excl);
-    if (!error)
-        fsnotify_create(dir, dentry);
-
-    // Устанавливаем атрибут с использованием правильного idmap
     if (!error) {
-        const char *name = "user.bitX";
-        const char *value = "0";
-        int xerr = vfs_setxattr(idmap, dentry, name, value, strlen(value), 0);
-        
-        if (xerr) {
-            printk(KERN_WARNING "Failed to set %s=%s for %s (err=%d)\n",
-                   name, value, dentry->d_name.name, xerr);
-        }
+        fsnotify_create(dir, dentry);
+        set_bitx_attribute(idmap, dentry); // Новая функция
     }
 
     return error;
+}
+```
+```bash
+int vfs_mknod(struct mnt_idmap *idmap, struct inode *dir,
+              struct dentry *dentry, umode_t mode, dev_t dev)
+{
+    int error;
+    
+    // ... существующий код ...
+
+    if (!error) {
+        fsnotify_create(dir, dentry);
+        set_bitx_attribute(idmap, dentry);
+    }
+    
+    return error;
+}
+```
+```bash
+int vfs_symlink(struct mnt_idmap *idmap, struct inode *dir,
+                struct dentry *dentry, const char *oldname)
+{
+    int error;
+    
+    // ... существующий код ...
+
+    if (!error) {
+        fsnotify_create(dir, dentry);
+        set_bitx_attribute(idmap, dentry);
+    }
+    
+    return error;
+}
+```
+```bash
+static void set_bitx_attribute(struct mnt_idmap *idmap, struct dentry *dentry)
+{
+    const char *name = "user.bitX";
+    const char *value = "0";
+    struct inode *inode = d_inode(dentry);
+    const char *fstype;
+    
+    if (!inode) return;
+    
+    fstype = inode->i_sb->s_type->name;
+    
+    // Исключаем виртуальные ФС
+    if (strcmp(fstype, "tmpfs") == 0 ||
+        strcmp(fstype, "ramfs") == 0 ||
+        strcmp(fstype, "devtmpfs") == 0 ||
+        strcmp(fstype, "proc") == 0 ||
+        strcmp(fstype, "sysfs") == 0 ||
+        strcmp(fstype, "cgroup") == 0) {
+        return;
+    }
+    
+    // Только для обычных файлов
+    if (!S_ISREG(inode->i_mode)) {
+        return;
+    }
+    
+    int xerr = vfs_setxattr(idmap, dentry, name, value, strlen(value), XATTR_CREATE);
+    
+    if (xerr) {
+        if (xerr != -EOPNOTSUPP && xerr != -ENOTSUP) {
+            printk(KERN_INFO "[bitX] Set bitX failed for %s (err=%d, FS=%s)\n",
+                   dentry->d_name.name, xerr, fstype);
+        }
+    } else {
+        printk(KERN_INFO "[bitX] Set bitX=0 for new file: %s (FS=%s)\n",
+               dentry->d_name.name, fstype);
+    }
 }
 ```
 
