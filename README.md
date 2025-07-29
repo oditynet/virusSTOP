@@ -1,18 +1,16 @@
 # virusSTOP
 
-# Все права защищены. Идея моя,реализация моя. Использовать в проектах можно с моего разрешения и с моим упоминанием в коде и в анонсах программы и других местах, где будет описываться ваша программа.
+# All rights are protected. My idea, my realization. You can use in projects with my permission and with my mention in the code and in the announcements of the program and other places where your program will be described.
 
-Решил опробовать свою реализацию мандатного доступа в новом ядре, а то коллеги жалаются на тяжкий труд Касперсого, установленный на их системах. Версию ядра взял последнюю, а именно linux-6.15.8
+I decided to try my own implementation of the mandate access in the new nucleus, otherwise colleagues are stinging on the hard work of the casoppent, installed on their systems. The nucleus version took the latter, namely Linux-6.15.8
 
-Подготоавливаем систему: 
-Надо выставить всем испольняемым файлам бит разрешения запуска. (Выставялем как системным утилитам, так и своим)
+We prepare the system:
+It is necessary to set the bits of the launch permit used by all the files used. (I put it both system utilities and my own)
 ```
 sudo find /usr/bin -xdev -type f -exec /usr/bin/setfattr -n "user.bitX" -v 1 {} \;
 sudo find /sbin -xdev -type f -exec /usr/bin/setfattr -n "user.bitX" -v 1 {} \;
 ```
-Правим код ядра:
-
-prepare_binprm - понимает,что атрибут не вешается на вирутальные ФС и initram.
+Prepare_binPrm - understands that the attribute is not hanged on virus and Initram.
 
 vim fs/exec.c
 ```bash
@@ -76,13 +74,13 @@ read_file:
 }
 ```
 
-Следующий код устанвливаем всем новым файлам автоматом аттрибут запрещающий выполняться:
+The next code sets all new files by the ATRIBUT ATRIBUT prohibiting to execute:
 
 ```bash
 int vfs_create(struct mnt_idmap *idmap, struct inode *dir,
                struct dentry *dentry, umode_t mode, bool want_excl)
 {
-    // ... существующий код ...
+    // ... 
 
     if (!error) {
         fsnotify_create(dir, dentry);
@@ -98,7 +96,7 @@ int vfs_mknod(struct mnt_idmap *idmap, struct inode *dir,
 {
     int error;
     
-    // ... существующий код ...
+    // ... 
 
     if (!error) {
         fsnotify_create(dir, dentry);
@@ -114,7 +112,7 @@ int vfs_symlink(struct mnt_idmap *idmap, struct inode *dir,
 {
     int error;
     
-    // ... существующий код ...
+    // ...
 
     if (!error) {
         fsnotify_create(dir, dentry);
@@ -164,33 +162,34 @@ static void set_bitx_attribute(struct mnt_idmap *idmap, struct dentry *dentry)
     }
 }
 ```
-Собираем ядро:
+Build kernel:
 ```
 make
 make modules_install
 make install
 mkinitcpio -p linux-custom
 ```
-В fstab для ext4 добавляем поддержку аттрибутов  'user_xattr' и перезагружаемся.
+
+In the FSTAB for EXT4, add support for 'user_xattr' on and reboot.
 
 <img src="https://github.com/oditynet/virusSTOP/blob/main/result.png" title="example" width="800" />
 
-Теперь я создаю программу которая имеет максильный приоритет   позволит вам из под системы установить все что угодно:
+Now I create a program that has a maxilled priority will allow you to install anything from under the system:
 
 
 ```
-# Сборка обертки
+#Build launch
 gcc -o bitx_launcher bitx_launcher.c
 
-# Сборка библиотеки
+# Build lib
 gcc -shared -fPIC -o libsetbitx.so set_bitx.c -ldl
 
-# Запуск программы
+# Run
 LD_PRELOAD=/home/odity/kernel/1/libsetbitx.so ./bitx_launch /bin/bash -c "touch test_file"
 getfattr -n user.bitX test_file"
 
 ```
- Протестировал на установке Nvidia драйверов. Поребовалось только дать двум программам права:
+ He tested the installation of NVIDIA drivers. It was only required to give two programs of law:
  1) /home/odity/Downloads/linux-6.15.8/scripts/mod/modpost
  2) /home/odity/Downloads/linux-6.15.8/scripts/basic/fixdep
 
