@@ -177,7 +177,6 @@ sudo setfattr -n user.bitX -v 1 /usr/bin/base64
 
 Теперь я создаю программу которая имеет максильный приоритет   позволит вам из под системы установить все что угодно:
 
-(Далее все в разработке)
 
 ```
 # Сборка обертки
@@ -187,10 +186,11 @@ gcc -o bitx_launcher bitx_launcher.c
 gcc -shared -fPIC -o libsetbitx.so set_bitx.c -ldl
 
 # Запуск программы
-./bitx_launcher /bin/bash -c "touch test_file; ls -l test_file; getfattr -n user.bitX test_file"
-
-# Проверка
-touch test_file2
-getfattr -n user.bitX test_file test_file2
+LD_PRELOAD=/home/odity/kernel/1/libsetbitx.so ./bitx_launch /bin/bash -c "touch test_file"
+getfattr -n user.bitX test_file"
 
 ```
+ Протестировал на установке Nvidia драйверов. Поребовалось только дать двум программам права:
+ 1) /home/odity/Downloads/linux-6.15.8/scripts/mod/modpost
+ 2) /home/odity/Downloads/linux-6.15.8/scripts/basic/fixdep
+
