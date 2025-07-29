@@ -5,16 +5,46 @@
 
 vim fs/exec.c
 ```bash
+#include <linux/xattr.h>
+#include <linux/mnt_idmapping.h>
+
 static int prepare_binprm(struct linux_binprm *bprm)
 {
-         ssize_t bitX_value = -ENODATA;
-        char buffer[2] = {0};
-        bitX_value = vfs_getxattr(file_mnt_idmap(bprm->file), file_dentry(bprm->file),"user.bitX", buffer, sizeof(buffer)-1);
-        if (bitX_value > 0) {
-                if (buffer[0] == '0') {
-                printk(KERN_INFO "Execution check: %s bitX=%c\n", file_dentry(bprm->file)->d_name.name, buffer[0]);
-                        return -EACCES;         }
+    loff_t pos = 0;
+    ssize_t size;
+    char value[2];
+    
+    struct dentry *dentry = file_dentry(bprm->file);
+    struct mnt_idmap *idmap = file_mnt_idmap(bprm->file);
+
+    // Проверка на случай ошибок
+    if (!idmap) {
+        printk(KERN_WARNING "Failed to get idmap for file: %s\n", dentry->d_name.name);
+        return -EPERM;
+    }
+
+    size = vfs_getxattr(idmap, dentry, "user.bitX", value, sizeof(value) - 1);
+    
+    if (size == 1) {
+        value[1] = '\0';
+        if (value[0] == '0') {
+            printk(KERN_WARNING "Execution denied: %s has user.bitX=0\n",
+                   dentry->d_name.name);
+            return -EPERM;
         }
+    } else if (size == -ENODATA) { // if attrr is not install
+        printk(KERN_WARNING "Execution denied: %s missing user.bitX attribute\n",
+               dentry->d_name.name);
+        return -EPERM;
+    } else if (size < 0) {
+        printk(KERN_WARNING "Execution denied: error %ld reading user.bitX for %s\n",
+               size, dentry->d_name.name);
+        return -EPERM;
+    }
+    
+    memset(bprm->buf, 0, BINPRM_BUF_SIZE);
+    return kernel_read(bprm->file, bprm->buf, BINPRM_BUF_SIZE, &pos);
+}
 ```
 
 Следующий код устанввливаем всем новым файлам автоматом аттрибут запрещающий выполняться:
