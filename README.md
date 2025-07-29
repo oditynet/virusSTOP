@@ -3,6 +3,16 @@
 
 Решил опробовать свою реализацию мандатного доступа в новом ядре, а то коллеги жалаются на тяжкий труд Касперсого, установленный на их системах. Версию ядра взял последнюю, а именно linux-6.15.8
 
+Подготоавливаем систему: 
+Надо выставить всем испольняемым файлам бит разрешения запуска. (Выставялем как системным утилитам, так и своим)
+```
+sudo find /usr/bin -xdev -type f -exec /usr/bin/setfattr -n "user.bitX" -v 1 {} \;
+sudo find /sbin -xdev -type f -exec /usr/bin/setfattr -n "user.bitX" -v 1 {} \;
+```
+Правим код ядра:
+
+prepare_binprm - понимает,что атрибут не вешается на вирутальные ФС и initram.
+
 vim fs/exec.c
 ```bash
 
@@ -65,7 +75,7 @@ read_file:
 }
 ```
 
-Следующий код устанввливаем всем новым файлам автоматом аттрибут запрещающий выполняться:
+Следующий код устанвливаем всем новым файлам автоматом аттрибут запрещающий выполняться:
 
 ```bash
 int vfs_create(struct mnt_idmap *idmap, struct inode *dir,
@@ -153,8 +163,6 @@ static void set_bitx_attribute(struct mnt_idmap *idmap, struct dentry *dentry)
     }
 }
 ```
-
-
 Мы патчим код исполнения программы и не даем ему запуститься,если не выставлен аттрибут bitX.
 
 Пробегаемся по всем файлам в системе и выставляем нужный бит: 
@@ -165,3 +173,21 @@ sudo setfattr -n user.bitX -v 1 /usr/bin/base64
 пересобираем ядро, в fstab для ext4 добавляем поддержку аттрибутов  'user_xattr' и перезагружаемся.
 
 <img src="https://github.com/oditynet/virusSTOP/blob/main/result.png" title="example" width="800" />
+
+Теперь я создаю программу которая имеет максильный приоритет   позволит вам из под системы установить все что угодно:
+
+```
+# Сборка обертки
+gcc -o bitx_launcher bitx_launcher.c
+
+# Сборка библиотеки
+gcc -shared -fPIC -o libsetbitx.so set_bitx.c -ldl
+
+# Запуск программы
+./bitx_launcher /bin/bash -c "touch test_file; ls -l test_file; getfattr -n user.bitX test_file"
+
+# Проверка
+touch test_file2
+getfattr -n user.bitX test_file test_file2
+
+```
