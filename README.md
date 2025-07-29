@@ -75,7 +75,7 @@ int vfs_create(struct mnt_idmap *idmap, struct inode *dir,
 
     // Устанавливаем атрибут с использованием правильного idmap
     if (!error) {
-        const char *name = "user.bit0";
+        const char *name = "user.bitX";
         const char *value = "0";
         int xerr = vfs_setxattr(idmap, dentry, name, value, strlen(value), 0);
         
