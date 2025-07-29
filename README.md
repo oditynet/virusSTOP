@@ -52,33 +52,40 @@ static int prepare_binprm(struct linux_binprm *bprm)
 ```bash
 #include <linux/xattr.h>
 
-// Добавить в начало файла
-static int set_bitx_attr(struct dentry *dentry)
-{
-    const char value = '0'; // Значение атрибута
-    int error;
-
-    error = vfs_setxattr(&nop_mnt_idmap, dentry, "user.bitX", &value, 1, XATTR_CREATE);
-    //error = vfs_setxattr(&init_user_ns, dentry, "user.bitX", &value, 1, XATTR_CREATE);
-    
-    if (error && error != -ENODATA && error != -EOPNOTSUPP) {
-        printk(KERN_WARNING "Failed to set bitX attribute for %s: %d\n",
-               dentry->d_name.name, error);
-    }
-    return error;
-}
-
-// Модифицировать функцию vfs_create
 int vfs_create(struct mnt_idmap *idmap, struct inode *dir,
                struct dentry *dentry, umode_t mode, bool want_excl)
 {
-    ...
+    int error;
+
+    error = may_create(idmap, dir, dentry);
+    if (error)
+        return error;
+
+    if (!dir->i_op->create)
+        return -EACCES;
+
+    mode = vfs_prepare_mode(idmap, dir, mode, S_IALLUGO, S_IFREG);
+    error = security_inode_create(dir, dentry, mode);
+    if (error)
+        return error;
+        
     error = dir->i_op->create(idmap, dir, dentry, mode, want_excl);
+    if (!error)
+        fsnotify_create(dir, dentry);
+
+    // Устанавливаем атрибут с использованием правильного idmap
     if (!error) {
-        // Установка bitX=0 после успешного создания файла
-        set_bitx_attr(dentry);
+        const char *name = "user.bit0";
+        const char *value = "0";
+        int xerr = vfs_setxattr(idmap, dentry, name, value, strlen(value), 0);
+        
+        if (xerr) {
+            printk(KERN_WARNING "Failed to set %s=%s for %s (err=%d)\n",
+                   name, value, dentry->d_name.name, xerr);
+        }
     }
-    ...
+
+    return error;
 }
 ```
 
