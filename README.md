@@ -164,14 +164,14 @@ static void set_bitx_attribute(struct mnt_idmap *idmap, struct dentry *dentry)
     }
 }
 ```
-Мы патчим код исполнения программы и не даем ему запуститься,если не выставлен аттрибут bitX.
-
-Пробегаемся по всем файлам в системе и выставляем нужный бит: 
-```bash
-sudo setfattr -n user.bitX -v 1 /usr/bin/base64
+Собираем ядро:
 ```
-
-пересобираем ядро, в fstab для ext4 добавляем поддержку аттрибутов  'user_xattr' и перезагружаемся.
+make
+make modules_install
+make install
+mkinitcpio -p linux-custom
+```
+В fstab для ext4 добавляем поддержку аттрибутов  'user_xattr' и перезагружаемся.
 
 <img src="https://github.com/oditynet/virusSTOP/blob/main/result.png" title="example" width="800" />
 
