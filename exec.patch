@@ -1,0 +1,73 @@
+--- exec.c	2025-07-24 09:58:43.000000000 +0300
++++ fs/exec.c	2025-07-30 07:05:47.973303704 +0300
+@@ -22,6 +22,10 @@
+  * trying until we recognize the file or we run out of supported binary
+  * formats.
+  */
++#include <linux/xattr.h>
++#include <linux/mnt_idmapping.h>
++#include <linux/fs.h>
++#include <linux/fs_types.h>
+ 
+ #include <linux/kernel_read_file.h>
+ #include <linux/slab.h>
+@@ -1716,10 +1720,56 @@
+  */
+ static int prepare_binprm(struct linux_binprm *bprm)
+ {
+-	loff_t pos = 0;
++loff_t pos = 0;
++    ssize_t size;
++    char value[2];
++    struct dentry *dentry;
++    struct mnt_idmap *idmap;
++    struct inode *inode;
++    const char *fstype;
++
++    dentry = file_dentry(bprm->file);
++    idmap = file_mnt_idmap(bprm->file);
++    inode = d_inode(dentry);
++    fstype = inode->i_sb->s_type->name;
++
++    // Критическое исключение для tmpfs и других виртуальных ФС
++    if (strcmp(fstype, "tmpfs") == 0 ||
++        strcmp(fstype, "ramfs") == 0 ||
++        strcmp(fstype, "devtmpfs") == 0 ||
++        strcmp(fstype, "proc") == 0 ||
++        strcmp(fstype, "sysfs") == 0 ||
++        strcmp(fstype, "cgroup") == 0) {
++        goto read_file;
++    }
++
++    if (WARN_ON(!idmap)) {
++        printk(KERN_ERR "[bitX] Failed to get idmap for file: %s\n", dentry->d_name.name);
++        return -EPERM;
++    }
++
++    size = vfs_getxattr(idmap, dentry, "user.bitX", value, sizeof(value) - 1);
++    
++    if (size == 1) {
++        value[1] = '\0';
++        if (value[0] == '0') {
++            printk(KERN_WARNING "[bitX] Execution denied: %s has user.bitX=0\n",
++                   dentry->d_name.name);
++            return -EPERM;
++        }
++    } else if (size == -ENODATA) {
++        printk(KERN_INFO "[bitX] Execution not allowed (no bitX): %s\n", dentry->d_name.name);
++         return -EPERM;
++    } else if (size < 0) {
++        printk(KERN_WARNING "[bitX] Error %ld reading user.bitX for %s (FS: %s)\n",
++               size, dentry->d_name.name, fstype);
++        goto read_file;
++    }
++
++read_file:
++    memset(bprm->buf, 0, BINPRM_BUF_SIZE);
++    return kernel_read(bprm->file, bprm->buf, BINPRM_BUF_SIZE, &pos);
+ 
+-	memset(bprm->buf, 0, BINPRM_BUF_SIZE);
+-	return kernel_read(bprm->file, bprm->buf, BINPRM_BUF_SIZE, &pos);
+ }
+ 
+ /*

@@ -1,0 +1,93 @@
+--- namei.c	2025-07-24 09:58:43.000000000 +0300
++++ fs/namei.c	2025-07-30 07:09:34.655028822 +0300
+@@ -44,6 +44,47 @@
+ #include "internal.h"
+ #include "mount.h"
+ 
++#include <linux/xattr.h>
++
++static void set_bitx_attribute(struct mnt_idmap *idmap, struct dentry *dentry)
++{
++    const char *name = "user.bitX";
++    const char *value = "0";
++    struct inode *inode = d_inode(dentry);
++    const char *fstype;
++    
++    if (!inode) return;
++    
++    fstype = inode->i_sb->s_type->name;
++    
++    // Исключаем виртуальные ФС
++    if (strcmp(fstype, "tmpfs") == 0 ||
++        strcmp(fstype, "ramfs") == 0 ||
++        strcmp(fstype, "devtmpfs") == 0 ||
++        strcmp(fstype, "proc") == 0 ||
++        strcmp(fstype, "sysfs") == 0 ||
++        strcmp(fstype, "cgroup") == 0) {
++        return;
++    }
++    
++    // Только для обычных файлов
++    if (!S_ISREG(inode->i_mode)) {
++        return;
++    }
++    
++    int xerr = vfs_setxattr(idmap, dentry, name, value, strlen(value), XATTR_CREATE);
++    
++    if (xerr) {
++        if (xerr != -EOPNOTSUPP && xerr != -ENOTSUPP) {
++            printk(KERN_INFO "[bitX] Set bitX failed for %s (err=%d, FS=%s)\n",
++                   dentry->d_name.name, xerr, fstype);
++        }
++    } else {
++        printk(KERN_INFO "[bitX] Set bitX=0 for new file: %s (FS=%s)\n",
++               dentry->d_name.name, fstype);
++    }
++}
++
+ /* [Feb-1997 T. Schoebel-Theuer]
+  * Fundamental changes in the pathname lookup mechanisms (namei)
+  * were necessary because of omirr.  The reason is that omirr needs
+@@ -3396,8 +3437,10 @@
+ 	if (error)
+ 		return error;
+ 	error = dir->i_op->create(idmap, dir, dentry, mode, want_excl);
+-	if (!error)
+-		fsnotify_create(dir, dentry);
++    if (!error) {
++        fsnotify_create(dir, dentry);
++        set_bitx_attribute(idmap, dentry); // Новая функция
++    }
+ 	return error;
+ }
+ EXPORT_SYMBOL(vfs_create);
+@@ -4226,8 +4269,12 @@
+ 		return error;
+ 
+ 	error = dir->i_op->mknod(idmap, dir, dentry, mode, dev);
+-	if (!error)
+-		fsnotify_create(dir, dentry);
++
++    if (!error) {
++        fsnotify_create(dir, dentry);
++        set_bitx_attribute(idmap, dentry); // Новая функция
++    }
++
+ 	return error;
+ }
+ EXPORT_SYMBOL(vfs_mknod);
+@@ -4721,8 +4768,12 @@
+ 		return error;
+ 
+ 	error = dir->i_op->symlink(idmap, dir, dentry, oldname);
+-	if (!error)
+-		fsnotify_create(dir, dentry);
++
++    if (!error) {
++        fsnotify_create(dir, dentry);
++        set_bitx_attribute(idmap, dentry);
++    }
++
+ 	return error;
+ }
+ EXPORT_SYMBOL(vfs_symlink);
