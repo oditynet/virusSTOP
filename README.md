@@ -1,6 +1,19 @@
+<a name="readme-top"></a>
+<div align="center">
+    
+<br>
+
 # virusSTOP
 
+<!-- SHIELD GROUP -->
+
+[![][github-stars-shield]][github-stars-link]
+[![][github-license-shield]][github-license-shield]<br/>
+
 # All rights are protected. My idea, my realization. You can use in projects with my permission and with my mention in the code and in the announcements of the program and other places where your program will be described.
+
+<a name="readme-left"></a>
+<div align="left">
 
 I decided to try my own implementation of the mandate access in the new nucleus, otherwise colleagues are stinging on the hard work of the casoppent, installed on their systems. The nucleus version took the latter, namely Linux-6.15.8
 
