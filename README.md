@@ -203,3 +203,45 @@ getfattr -n user.bitX test_file"
  1) /home/odity/Downloads/linux-6.15.8/scripts/mod/modpost
  2) /home/odity/Downloads/linux-6.15.8/scripts/basic/fixdep
 
+
+Установка обновлений сбросит все атрибуты и по этому ставим хуки:
+```
+# /usr/share/libalpm/hooks/set-bitx.hook 
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = *
+
+[Action]
+Description = Setting user.bitX attribute for executables...
+When = PostTransaction
+Exec = /usr/local/bin/set-bitx-for-new-files.sh
+Depends = attr
+```
+
+```
+#/usr/local/bin/set-bitx-for-new-files.sh
+#!/bin/bash
+
+# Логирование
+LOG_FILE="/var/log/pacman-bitx.log"
+echo "$(date) - Processing transaction: $PACMAN_INSTALLED_PACKAGES" >> "$LOG_FILE"
+
+# Обработка всех установленных файлов из последней транзакции
+for package in $(pacman -Qq); do
+    # Получаем список файлов пакета
+    pacman -Qlq "$package" | while read -r file; do
+        # Проверяем, что файл существует и является исполняемым
+        if [[ -f "$file" && -x "$file" ]]; then
+            # Проверяем, не установлен ли уже атрибут
+            if ! getfattr -n user.bitX "$file" &>/dev/null; then
+                echo "Setting bitX for: $file" >> "$LOG_FILE"
+                setfattr -n user.bitX -v 1 "$file"
+            fi
+        fi
+    done
+done
+
+echo "Completed" >> "$LOG_FILE"
+```
