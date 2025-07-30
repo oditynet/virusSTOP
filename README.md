@@ -7,9 +7,6 @@
 
 <!-- SHIELD GROUP -->
 
-[![][github-stars-shield]][github-stars-link]
-[![][github-license-shield]][github-license-shield]<br/>
-
 # All rights are protected. My idea, my realization. You can use in projects with my permission and with my mention in the code and in the announcements of the program and other places where your program will be described.
 
 <a name="readme-left"></a>
