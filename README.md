@@ -123,6 +123,8 @@ int vfs_symlink(struct mnt_idmap *idmap, struct inode *dir,
 }
 ```
 ```bash
+
+#include <linux/xattr.h>
 static void set_bitx_attribute(struct mnt_idmap *idmap, struct dentry *dentry)
 {
     const char *name = "user.bitX";
