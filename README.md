@@ -10,6 +10,14 @@ It is necessary to set the bits of the launch permit used by all the files used.
 sudo find /usr/bin -xdev -type f -exec /usr/bin/setfattr -n "user.bitX" -v 1 {} \;
 sudo find /sbin -xdev -type f -exec /usr/bin/setfattr -n "user.bitX" -v 1 {} \;
 ```
+
+Used patch:
+```
+cd linux/fs
+ patch -p1 < exec.patch
+ patch -p1 < namei.patch
+```
+
 Prepare_binPrm - understands that the attribute is not hanged on virus and Initram.
 
 vim fs/exec.c
