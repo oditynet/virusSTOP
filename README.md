@@ -299,4 +299,8 @@ echo "Completed" >> "$LOG_FILE"
 }
 ```
 
-Теперь команда setfattr можно выставить любой аттрибут кроме user.bitX. Его можно будет выставить через утилиту /usr/bin/bitx_launcher синтаксис которой '/usr/bin/bitx_launcher -v 1 file'
+Теперь команда setfattr можно выставить любой аттрибут кроме user.bitX. Его можно будет выставить через утилиту /usr/bin/bitx_launcher из исходника bitx_set.c синтаксис которой '/usr/bin/bitx_launcher -v 1 file'
+```
+gcc -o bitx_launch bitx_set.c
+./bitx_launcher -v 1 bitx_launcher
+```
