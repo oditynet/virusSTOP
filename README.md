@@ -257,3 +257,46 @@ done
 
 echo "Completed" >> "$LOG_FILE"
 ```
+
+
+Если мы хотим запретить изменения атрибута user.bitX то нужно пропатчик в файле fs/xattr.c функцию до вида:
+```
+       const char *allowed_exec = "/usr/bin/bitx_launcher";
+
+       // Отслеживаем только user.bitX
+       if (strcmp(name, "user.bitX") == 0) {
+               // Получаем путь к исполняемому файлу процесса
+               exe_file = get_task_exe_file(current);
+               if (!exe_file) {
+                       return -EPERM;
+               }
+
+               char *path = d_path(&exe_file->f_path, exe_path, sizeof
+(exe_path));
+               fput(exe_file);
+
+               // Если это не bitx_launcher — запрещаем
+               if (IS_ERR(path) || strcmp(path, allowed_exec) != 0) {
+                       printk(KERN_WARNING "[bitX] Unauthorized attempt to set user.bitX from %s\n", path);
+                       return -EPERM;
+               }
+
+               // Логируем значение (если нужно)
+               if (size == 1 && (*(char *)value == '0' || *(char *)value == '1')) {
+                       printk(KERN_INFO "[bitX] user.bitX set1 to %c by %s\n", *(char *)value, path);
+               }
+       }
+
+        if (delegated_inode) {
+                error = break_deleg_wait(&delegated_inode);
+                if (!error)
+                        goto retry_deleg;
+        }
+        if (value != orig_value)
+                kfree(value);
+
+        return error;
+}
+```
+
+Теперь команда setfattr можно выставить любой аттрибут кроме user.bitX. Его можно будет выставить через утилиту /usr/bin/bitx_launcher синтаксис которой '/usr/bin/bitx_launcher -v 1 file'
