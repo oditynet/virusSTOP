@@ -1,0 +1,116 @@
+--- xattr.c	2025-07-24 09:58:43.000000000 +0300
++++ fs/xattr.c	2025-07-31 12:48:13.317994762 +0300
+@@ -187,6 +187,8 @@
+ {
+ 	const struct xattr_handler *handler;
+ 
++printk(KERN_INFO "[!!!] to %c by  %s\n", *(char *)value,name);
++
+ 	if (is_posix_acl_xattr(name))
+ 		return -EOPNOTSUPP;
+ 
+@@ -197,6 +199,35 @@
+ 		return -EOPNOTSUPP;
+ 	if (size == 0)
+ 		value = "";  /* empty EA, do not remove */
++		
++       struct file *exe_file;
++       char exe_path[PATH_MAX];
++       const char *allowed_exec = "/usr/bin/bitx_launcher";
++
++       // Отслеживаем только user.bitX
++       if (strcmp(name, "user.bitX") == 0) {
++               // Получаем путь к исполняемому файлу процесса
++               exe_file = get_task_exe_file(current);
++               if (!exe_file) {
++                       return -EPERM;
++               }
++
++               char *path = d_path(&exe_file->f_path, exe_path, sizeof(exe_path));
++               fput(exe_file);
++
++               // Если это не bitx_launcher — запрещаем
++               if (IS_ERR(path) || strcmp(path, allowed_exec) != 0) {
++                       printk(KERN_WARNING "[bitX] Unauthorized attempt to set user.bitX from %s\n", path);
++                       return -EPERM;
++               }
++
++               // Логируем значение (если нужно)
++               if (size == 1 && (*(char *)value == '0' || *(char *)value == '1')) {
++                      printk(KERN_INFO "[bitX] user.bitX set to %c by %s\n", *(char *)value, path);
++               }
++       }
++
++
+ 	return handler->set(handler, idmap, dentry, inode, name, value,
+ 			    size, flags);
+ }
+@@ -255,6 +286,34 @@
+ 		}
+ 	}
+ 
++
++       struct file *exe_file;
++       char exe_path[PATH_MAX];
++       const char *allowed_exec = "/usr/bin/bitx_launcher";
++
++       // Отслеживаем только user.bitX
++       if (strcmp(name, "user.bitX") == 0) {
++               // Получаем путь к исполняемому файлу процесса
++               exe_file = get_task_exe_file(current);
++               if (!exe_file) {
++                       return -EPERM;
++               }
++
++               char *path = d_path(&exe_file->f_path, exe_path, sizeof(exe_path));
++               fput(exe_file);
++
++               // Если это не bitx_launcher — запрещаем
++               if (IS_ERR(path) || strcmp(path, allowed_exec) != 0) {
++                       printk(KERN_WARNING "Unauthorized attempt to set user.bitX from %s\n", path);
++                       return -EPERM;
++               }
++
++               // Логируем значение (если нужно)
++               if (size == 1 && (*(char *)value == '0' || *(char *)value == '1')) {
++                       printk(KERN_INFO "user.bitX set to %c by %s\n", *(char *)value, path);
++               }
++       }
++
+ 	return error;
+ }
+ 
+@@ -322,6 +381,33 @@
+ 				      flags, &delegated_inode);
+ 	inode_unlock(inode);
+ 
++       struct file *exe_file;
++       char exe_path[PATH_MAX];
++       const char *allowed_exec = "/usr/bin/bitx_launcher";
++
++       // Отслеживаем только user.bitX
++       if (strcmp(name, "user.bitX") == 0) {
++               // Получаем путь к исполняемому файлу процесса
++               exe_file = get_task_exe_file(current);
++               if (!exe_file) {
++                       return -EPERM;
++               }
++
++               char *path = d_path(&exe_file->f_path, exe_path, sizeof(exe_path));
++               fput(exe_file);
++
++               // Если это не bitx_launcher — запрещаем
++               if (IS_ERR(path) || strcmp(path, allowed_exec) != 0) {
++                       printk(KERN_WARNING "[bitX] Unauthorized1 attempt to set user.bitX from %s\n", path);
++                       return -EPERM;
++               }
++
++               // Логируем значение (если нужно)
++               if (size == 1 && (*(char *)value == '0' || *(char *)value == '1')) {
++                       printk(KERN_INFO "[bitX] user.bitX set1 to %c by %s\n", *(char *)value, path);
++               }
++       }
++
+ 	if (delegated_inode) {
+ 		error = break_deleg_wait(&delegated_inode);
+ 		if (!error)
