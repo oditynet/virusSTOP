@@ -1,16 +1,18 @@
-<a name="readme-top"></a>
 <div align="center">
-    
-<br>
+  <img src="https://github.com/oditynet/virusSTOP/blob/main/logo.png" width="250" height="auto" />
+  <h1>  virusSTOP </h1>
+</div>
 
-# virusSTOP
+## 📚 License
+All rights are protected. My idea, my realization. You can use in projects with my permission and with my mention in the code and in the announcements of the program and other places where your program will be described.
 
-<!-- SHIELD GROUP -->
+## 📋 I can...
 
-# All rights are protected. My idea, my realization. You can use in projects with my permission and with my mention in the code and in the announcements of the program and other places where your program will be described.
+1. Blocking the launch of programs
+2. Blocking the launch of scripts as an executable file and a file passed as an argument to the interpreter (bash, awk, sh, python and etc.)
+3. You can set the attribute only through your program (work with the user.bitX attribute is blocked via setfattr )
 
-<a name="readme-left"></a>
-<div align="left">
+## 🛠️ Prepare 
 
 I decided to try my own implementation of the mandate access in the new nucleus, otherwise colleagues are stinging on the hard work of the casoppent, installed on their systems. The nucleus version took the latter, namely Linux-6.15.8
 
@@ -183,7 +185,8 @@ static void set_bitx_attribute(struct mnt_idmap *idmap, struct dentry *dentry)
     }
 }
 ```
-Build kernel:
+
+## Build kernel:
 ```
 make
 make modules_install
@@ -216,8 +219,8 @@ getfattr -n user.bitX test_file"
  1) /home/odity/Downloads/linux-6.15.8/scripts/mod/modpost
  2) /home/odity/Downloads/linux-6.15.8/scripts/basic/fixdep
 
+Installing updates will reset all attributes, so we set hooks:
 
-Установка обновлений сбросит все атрибуты и по этому ставим хуки:
 ```
 # /usr/share/libalpm/hooks/set-bitx.hook 
 [Trigger]
@@ -237,17 +240,15 @@ Depends = attr
 #/usr/local/bin/set-bitx-for-new-files.sh
 #!/bin/bash
 
-# Логирование
+#Logging
+
 LOG_FILE="/var/log/pacman-bitx.log"
 echo "$(date) - Processing transaction: $PACMAN_INSTALLED_PACKAGES" >> "$LOG_FILE"
 
-# Обработка всех установленных файлов из последней транзакции
-for package in $(pacman -Qq); do
-    # Получаем список файлов пакета
+for package in $(pacman -Qq); do #todo : very long!!!!
     pacman -Qlq "$package" | while read -r file; do
-        # Проверяем, что файл существует и является исполняемым
         if [[ -f "$file" && -x "$file" ]]; then
-            # Проверяем, не установлен ли уже атрибут
+
             if ! getfattr -n user.bitX "$file" &>/dev/null; then
                 echo "Setting bitX for: $file" >> "$LOG_FILE"
                 setfattr -n user.bitX -v 1 "$file"
@@ -259,8 +260,8 @@ done
 echo "Completed" >> "$LOG_FILE"
 ```
 
+If we want to prohibit changes to the user.bitX attribute, we need to patch the function in the fs/xattr.c file to the following form:
 
-Если мы хотим запретить изменения атрибута user.bitX то нужно пропатчик в файле fs/xattr.c функцию до вида:
 ```
        const char *allowed_exec = "/usr/bin/bitx_launcher";
 
@@ -300,12 +301,14 @@ echo "Completed" >> "$LOG_FILE"
 }
 ```
 
-Теперь команда setfattr можно выставить любой аттрибут кроме user.bitX. Его можно будет выставить через утилиту /usr/bin/bitx_launcher из исходника bitx_launcher.c синтаксис которой '/usr/bin/bitx_launcher -v 1 file' а без аргумента она будет запускать все родительские процессы программы с битом bitX=1
+Now the setfattr command can set any attribute except user.bitX. It can be set via the /usr/bin/bitx_launcher utility from the bitx_launcher.c source code, the syntax of which is '/usr/bin/bitx_launcher -v 1 file' and without an argument it will launch all parent processes of the program with the bitX=1 bit.
+
 ```
 gcc -o bitx_launch bitx_launch.c
 ```
 
-Проблемы:
-1) Если вы не можете выствить атрибут,то перезагружайтесь в нормальное ядро.
-2) Компиляция ядра: нужно дать права файлам в подпапке ./scripts
-3) /usr/bin/bitx_launcher  не имеет самоконтроль своей целостности по этому подменить его не составит проблем
+## Problems 
+
+1) If you can't set the attribute, then reboot into a normal kernel.
+2) Compiling the kernel: you need to give rights to files in the ./scripts subfolder
+3) /usr/bin/bitx_launcher does not have self-control of its integrity, so replacing it will not be a problem
