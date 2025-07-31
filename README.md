@@ -300,8 +300,12 @@ echo "Completed" >> "$LOG_FILE"
 }
 ```
 
-Теперь команда setfattr можно выставить любой аттрибут кроме user.bitX. Его можно будет выставить через утилиту /usr/bin/bitx_launcher из исходника bitx_set.c синтаксис которой '/usr/bin/bitx_launcher -v 1 file'
+Теперь команда setfattr можно выставить любой аттрибут кроме user.bitX. Его можно будет выставить через утилиту /usr/bin/bitx_launcher из исходника bitx_launcher.c синтаксис которой '/usr/bin/bitx_launcher -v 1 file' а без аргумента она будет запускать все родительские процессы программы с битом bitX=1
 ```
-gcc -o bitx_launch bitx_set.c
-./bitx_launcher -v 1 bitx_launcher
+gcc -o bitx_launch bitx_launch.c
 ```
+
+Проблемы:
+1) Если вы не можете выствить атрибут,то перезагружайтесь в нормальное ядро.
+2) Компиляция ядра: нужно дать права файлам в подпапке ./scripts
+3) /usr/bin/bitx_launcher  не имеет самоконтроль своей целостности по этому подменить его не составит проблем
