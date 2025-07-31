@@ -200,6 +200,8 @@ In the FSTAB for EXT4, add support for 'user_xattr' on and reboot.
 
 <img src="https://github.com/oditynet/virusSTOP/blob/main/result1.png" title="example" width="800" />
 
+<img src="https://github.com/oditynet/virusSTOP/blob/main/kernel_in_work.gif" title="example" width="800" />
+
 Now I create a program that has a maxilled priority will allow you to install anything from under the system:
 
 
