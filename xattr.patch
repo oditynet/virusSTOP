@@ -1,10 +1,10 @@
 --- xattr.c	2025-07-24 09:58:43.000000000 +0300
-+++ fs/xattr.c	2025-07-31 12:48:13.317994762 +0300
++++ fs/xattr.c	2025-08-02 14:17:21.757230075 +0300
 @@ -187,6 +187,8 @@
  {
  	const struct xattr_handler *handler;
  
-+printk(KERN_INFO "[!!!] to %c by  %s\n", *(char *)value,name);
++//printk(KERN_INFO "[!!!] to %c by  %s\n", *(char *)value,name);
 +
  	if (is_posix_acl_xattr(name))
  		return -EOPNOTSUPP;
@@ -73,7 +73,7 @@
 +
 +               // Логируем значение (если нужно)
 +               if (size == 1 && (*(char *)value == '0' || *(char *)value == '1')) {
-+                       printk(KERN_INFO "user.bitX set to %c by %s\n", *(char *)value, path);
++                       printk(KERN_INFO "[bitX] user.bitX set to %c by %s\n", *(char *)value, path);
 +               }
 +       }
 +

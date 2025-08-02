@@ -1,22 +1,24 @@
 --- exec.c	2025-07-24 09:58:43.000000000 +0300
-+++ fs/exec.c	2025-07-30 07:05:47.973303704 +0300
-@@ -22,6 +22,10 @@
++++ fs/exec.c	2025-08-02 14:16:34.620235544 +0300
+@@ -22,6 +22,12 @@
   * trying until we recognize the file or we run out of supported binary
   * formats.
   */
 +#include <linux/xattr.h>
 +#include <linux/mnt_idmapping.h>
++
 +#include <linux/fs.h>
 +#include <linux/fs_types.h>
++
  
  #include <linux/kernel_read_file.h>
  #include <linux/slab.h>
-@@ -1716,10 +1720,56 @@
+@@ -1716,10 +1722,136 @@
   */
  static int prepare_binprm(struct linux_binprm *bprm)
  {
 -	loff_t pos = 0;
-+loff_t pos = 0;
++    loff_t pos = 0;
 +    ssize_t size;
 +    char value[2];
 +    struct dentry *dentry;
@@ -54,20 +56,100 @@
 +            return -EPERM;
 +        }
 +    } else if (size == -ENODATA) {
-+        printk(KERN_INFO "[bitX] Execution not allowed (no bitX): %s\n", dentry->d_name.name);
-+         return -EPERM;
++        printk(KERN_INFO "[bitX] Execution NOT allowed (no bitX): %s\n", dentry->d_name.name);
++        return -EPERM;
++        //goto read_file;
 +    } else if (size < 0) {
 +        printk(KERN_WARNING "[bitX] Error %ld reading user.bitX for %s (FS: %s)\n",
 +               size, dentry->d_name.name, fstype);
 +        goto read_file;
 +    }
 +
-+read_file:
-+    memset(bprm->buf, 0, BINPRM_BUF_SIZE);
-+    return kernel_read(bprm->file, bprm->buf, BINPRM_BUF_SIZE, &pos);
++/*
++	const char *interpreter;
++	//char bitx_value[2];
++	const char *xattr_name = "user.bitX";
++	idmap = file_mnt_idmap(bprm->file);
++	
++        //printk(KERN_ERR "[bitX] file: %s and %d\n", dentry->d_name.name, bprm->argc);
++
++	// Проверяем, является ли процесс интерпретатором (bash, perl, python и т. д.)
++	interpreter = bprm->filename;
++	char *kernel_script_path = NULL;
++	if (strstr(dentry->d_name.name, "bash") || strstr(dentry->d_name.name, "perl") || strstr(dentry->d_name.name, "python3")  || strstr(dentry->d_name.name, "rust") ||strstr(dentry->d_name.name, "ruby")  ||strstr(dentry->d_name.name, "php") ||strstr(dentry->d_name.name, "sed") ||  strstr(dentry->d_name.name, "python") || strstr(dentry->d_name.name, "sh") || strstr(dentry->d_name.name, "zsh")) {
++		const char *script_file = NULL;
++		if (bprm->argc > 1) {
++		     char **argv = (char **)bprm->p;
++                     script_file = argv[1];
++                     //if (! script_file)
++	            //      script_file = bprm->interp;
++
++                char __user *user_path = (char __user *)bprm->p;
++                kernel_script_path = kmalloc(PATH_MAX, GFP_KERNEL);
++                
++            if (!copy_from_user(kernel_script_path, user_path, PATH_MAX)) {
++            	printk(KERN_ERR "[bitX] copy_from_user error\n");
++                kfree(kernel_script_path);
++                return -EFAULT;
++            }
++            
++            
++            script_file = kernel_script_path;
++            kfree(kernel_script_path);
++            
++            
++		if (script_file) {
++			struct path script_path;
++			
++			printk(KERN_ERR "[bitX]1 %s %s | %s\n",  bprm->interp,bprm->filename,script_file);
++			
++			if (!kern_path( script_file, LOOKUP_FOLLOW, &script_path)) {
++			        char *path_buf = kmalloc(PATH_MAX, GFP_KERNEL);
++                                char *dpath = d_path(&script_path, path_buf, PATH_MAX);
++                                printk(KERN_INFO "[bitX] Checking path: %s\n", dpath ? dpath : "(null)");
++                        
++				printk(KERN_ERR "[bitX] f1ile path: %s\n", script_path);
++				size = vfs_getxattr(idmap, script_path, xattr_name, value, sizeof(value));
++				
++				kfree(path_buf);
++				
++				path_put(&script_path);
++                               printk(KERN_ERR "[bitX] file path1: %s\n", value);
++    //value[1] = '\0';
++    if (value[0] == '1') {
++            goto read_file;
++        }
++    if (size == 1) {
++        value[1] = '\0';
++        if (value[0] == '0') {
++            printk(KERN_WARNING "[bitX] Script denied execute: %s has user.bitX=0\n",script_file);
++            return -EPERM;
++        }
++        if (value[0] == '1') {
++            //printk(KERN_WARNING "[bitX] Script denied execute: %s has user.bitX=0\n",script_file);
++            //return -EPERM;
++            goto read_file;
++        }
++    } else if (size == -ENODATA) {
++        printk(KERN_INFO "[bitX] Script NOT allowed execute (no bitX): %s\n", script_file);
++        return -EPERM;
++        //goto read_file;
++    } else if (size < 0) {
++        printk(KERN_WARNING "[bitX] Error %ld reading user.bitX for %s (FS: %s)\n",    size, script_file, fstype);
++        goto read_file;
++    }
++
++			}
++		}
++	}	
++     }
  
 -	memset(bprm->buf, 0, BINPRM_BUF_SIZE);
 -	return kernel_read(bprm->file, bprm->buf, BINPRM_BUF_SIZE, &pos);
++*/
++read_file:
++    memset(bprm->buf, 0, BINPRM_BUF_SIZE);
++    return kernel_read(bprm->file, bprm->buf, BINPRM_BUF_SIZE, &pos);
  }
  
  /*

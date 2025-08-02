@@ -1,5 +1,5 @@
 --- namei.c	2025-07-24 09:58:43.000000000 +0300
-+++ fs/namei.c	2025-07-30 07:09:34.655028822 +0300
++++ fs/namei.c	2025-07-29 17:59:33.266048815 +0300
 @@ -44,6 +44,47 @@
  #include "internal.h"
  #include "mount.h"
@@ -48,46 +48,40 @@
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -3396,8 +3437,10 @@
- 	if (error)
+@@ -3397,7 +3438,10 @@
  		return error;
  	error = dir->i_op->create(idmap, dir, dentry, mode, want_excl);
--	if (!error)
--		fsnotify_create(dir, dentry);
-+    if (!error) {
-+        fsnotify_create(dir, dentry);
-+        set_bitx_attribute(idmap, dentry); // Новая функция
-+    }
+ 	if (!error)
++	{
+ 		fsnotify_create(dir, dentry);
++		set_bitx_attribute(idmap, dentry); // Новая функция
++	}
  	return error;
  }
  EXPORT_SYMBOL(vfs_create);
-@@ -4226,8 +4269,12 @@
+@@ -4226,8 +4270,12 @@
  		return error;
  
  	error = dir->i_op->mknod(idmap, dir, dentry, mode, dev);
--	if (!error)
--		fsnotify_create(dir, dentry);
-+
-+    if (!error) {
-+        fsnotify_create(dir, dentry);
-+        set_bitx_attribute(idmap, dentry); // Новая функция
-+    }
-+
++		
+ 	if (!error)
++	{
+ 		fsnotify_create(dir, dentry);
++		set_bitx_attribute(idmap, dentry); // Новая функция
++	}
  	return error;
  }
  EXPORT_SYMBOL(vfs_mknod);
-@@ -4721,8 +4768,12 @@
+@@ -4721,8 +4769,12 @@
  		return error;
  
  	error = dir->i_op->symlink(idmap, dir, dentry, oldname);
--	if (!error)
--		fsnotify_create(dir, dentry);
-+
-+    if (!error) {
-+        fsnotify_create(dir, dentry);
-+        set_bitx_attribute(idmap, dentry);
-+    }
-+
++	
+ 	if (!error)
++	{
+ 		fsnotify_create(dir, dentry);
++		set_bitx_attribute(idmap, dentry); // Новая функция
++	}
  	return error;
  }
  EXPORT_SYMBOL(vfs_symlink);
