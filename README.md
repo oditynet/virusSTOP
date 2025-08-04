@@ -213,7 +213,7 @@ gcc -o bitx_launcher bitx_launcher.c
 gcc -shared -fPIC -o libsetbitx.so set_bitx.c -ldl
 
 # Run
-LD_PRELOAD=/home/odity/kernel/1/libsetbitx.so ./bitx_launch /bin/bash -c "touch test_file"
+./bitx_launch /bin/bash -c "touch test_file"
 getfattr -n user.bitX test_file"
 
 ```
