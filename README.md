@@ -191,7 +191,7 @@ static void set_bitx_attribute(struct mnt_idmap *idmap, struct dentry *dentry)
 make
 make modules_install
 make install
-mkinitcpio -p linux-custom
+mkinitcpio -p linux-custom (mkinitcpio -k 5.15.8  -g /boot/initramfs-linux1.img)
 ```
 
 In the FSTAB for EXT4, add support for 'user_xattr' on and reboot.
