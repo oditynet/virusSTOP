@@ -105,11 +105,11 @@
 +			
 +			if (!kern_path( script_file, LOOKUP_FOLLOW, &script_path)) {
 +			        char *path_buf = kmalloc(PATH_MAX, GFP_KERNEL);
-+                                char *dpath = d_path(&script_path, path_buf, PATH_MAX);
++                                char *dpath = d_path(&script_path.dentry, path_buf, PATH_MAX);
 +                                printk(KERN_INFO "[bitX] Checking path: %s\n", dpath ? dpath : "(null)");
 +                        
 +				printk(KERN_ERR "[bitX] f1ile path: %s\n", script_path);
-+				size = vfs_getxattr(idmap, script_path, xattr_name, value, sizeof(value));
++				size = vfs_getxattr(idmap, script_path.d, xattr_name, value, sizeof(value));
 +				
 +				kfree(path_buf);
 +				
