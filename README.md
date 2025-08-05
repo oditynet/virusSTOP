@@ -1,3 +1,8 @@
+<img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/oditynet/virusSTOP"></img>
+<img alt="GitHub license" src="https://img.shields.io/github/license/oditynet/virusSTOP"></img>
+<img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/oditynet/virusSTOP"></img>
+<img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/oditynet/virusSTOP"></img>
+
 <div align="center">
   <img src="https://github.com/oditynet/virusSTOP/blob/main/logo.png" width="250" height="auto" />
   <h1>  virusSTOP </h1>
