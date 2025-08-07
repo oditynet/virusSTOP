@@ -210,6 +210,13 @@ In the FSTAB for EXT4, add support for 'user_xattr' on and reboot.
 Now I create a program that has a maxilled priority will allow you to install anything from under the system:
 
 
+In xattr.c i add in  white list bitx_launcher and systemd because it wac set bitX 
+```
+systemd[1]: Hostname set to <viva>.
+авг 07 10:42:47 viva kernel: Unauthorized attempt to set user.bitX from /usr/lib/systemd/systemd
+авг 07 10:42:47 viva kernel: [bitX] Unauthorized1 attempt to set user.bitX from /usr/lib/systemd>
+авг 07 10:42:47 viva systemd[1]: bpf-restrict-fs: LSM BPF program attached
+```
 ```
 #Build launch
 gcc -o bitx_launcher bitx_launcher.c
