@@ -19,7 +19,7 @@ All rights are protected. My idea, my realization. You can use in projects with 
 
 ## 🛠️ Prepare 
 
-I decided to try my own implementation of the mandate access in the new nucleus, otherwise colleagues are stinging on the hard work of the casoppent, installed on their systems. The nucleus version took the latter, namely Linux-6.15.8
+I decided to try my own implementation of the mandate access in the new nucleus, otherwise colleagues are stinging on the hard work of the casoppent, installed on their systems. The nucleus version took the latter, namely Linux-6.15.8+
 
 We prepare the system:
 It is necessary to set the bits of the launch permit used by all the files used. (I put it both system utilities and my own)
@@ -191,7 +191,7 @@ static void set_bitx_attribute(struct mnt_idmap *idmap, struct dentry *dentry)
 }
 ```
 
-## Build kernel:
+## 🌪 Build kernel:
 ```
 make
 make modules_install
@@ -330,7 +330,7 @@ Now the setfattr command can set any attribute except user.bitX. It can be set v
 gcc -o bitx_launch bitx_launch.c
 ```
 
-## Problems 
+## ☯ Problems 
 
 1) If you can't set the attribute, then reboot into a normal kernel.
 2) Compiling the kernel: you need to give rights to files in the ./scripts subfolder
