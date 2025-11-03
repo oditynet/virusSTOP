@@ -19,7 +19,7 @@ All rights are protected. My idea, my realization. You can use in projects with 
 
 ## 🛠️ Prepare 
 
-I decided to try my own implementation of the mandate access in the new nucleus, otherwise colleagues are stinging on the hard work of the casoppent, installed on their systems. The nucleus version took the latter, namely Linux-6.15.8+
+I decided to try my own implementation of the mandate access in the new nucleus, otherwise colleagues are stinging on the hard work of the casoppent, installed on their systems. The nucleus version took the latter, namely Linux-6.15.8+ (6.17.7 test is done)
 
 We prepare the system:
 It is necessary to set the bits of the launch permit used by all the files used. (I put it both system utilities and my own)
