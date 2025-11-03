@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -13,6 +14,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <sys/xattr.h>
 
 #define MAX_CHOICE_LEN 16
 #define STATUS_DIR "/tmp/bitx_status"
@@ -45,9 +47,11 @@ int get_bitX(pid_t pid) {
     FILE *fp = fopen(path, "r");
     if (fp) {
         int value;
-        fscanf(fp, "%d", &value);
+        if (fscanf(fp, "%d", &value) == 1) {
+            fclose(fp);
+            return value;
+        }
         fclose(fp);
-        return value;
     }
     return 0; // По умолчанию запрещено
 }
@@ -59,22 +63,27 @@ void cleanup_status(pid_t pid) {
     unlink(path);
 }
 
-// Получаем путь к библиотеке
-char* get_lib_path() {
-    static char lib_path[PATH_MAX];
-    if (lib_path[0] == '\0') {
-        char exe_path[PATH_MAX];
-        ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path)-1);
-        if (len > 0) {
-            exe_path[len] = '\0';
-            char *last_slash = strrchr(exe_path, '/');
-            if (last_slash) {
-                *last_slash = '\0';
-                snprintf(lib_path, sizeof(lib_path), "%s/libsetbitx.so", exe_path);
-            }
+// Функция для установки/снятия атрибута
+int set_bitx_attr(const char *filename, int value) {
+    if (value == 1) {
+        int result = setxattr(filename, "user.bitX", "1", 1, 0);
+        if (result == 0) {
+            printf("Successfully set user.bitX=1 on %s\n", filename);
+        } else {
+            perror("Failed to set user.bitX=1");
         }
+        return result;
+    } else {
+        int result = removexattr(filename, "user.bitX");
+        if (result == 0) {
+            printf("Successfully removed user.bitX from %s\n", filename);
+        } else if (errno == ENODATA) {
+            printf("Attribute user.bitX not found on %s\n", filename);
+        } else {
+            perror("Failed to remove user.bitX");
+        }
+        return result;
     }
-    return lib_path;
 }
 
 void trace_child(pid_t pid);
@@ -85,15 +94,15 @@ void handle_new_process(pid_t pid) {
     fflush(stdout);
 
     char choice[MAX_CHOICE_LEN];
-    fgets(choice, MAX_CHOICE_LEN, stdin);
-    
-    int bitx_val = atoi(choice);
-    set_bitX(pid, bitx_val);
-    
-    if (bitx_val == 1) {
-        printf("[+] Process %d allowed (bitX=1)\n", pid);
-    } else {
-        printf("[-] Process %d restricted (bitX=0)\n", pid);
+    if (fgets(choice, MAX_CHOICE_LEN, stdin)) {
+        int bitx_val = atoi(choice);
+        set_bitX(pid, bitx_val);
+        
+        if (bitx_val == 1) {
+            printf("[+] Process %d allowed (bitX=1)\n", pid);
+        } else {
+            printf("[-] Process %d restricted (bitX=0)\n", pid);
+        }
     }
 }
 
@@ -125,10 +134,7 @@ void trace_child(pid_t pid) {
             int sig = WSTOPSIG(status);
             unsigned long event = (unsigned long)status >> 16;
             
-            if (sig == (SIGTRAP | 0x80)) {
-                // System call handling
-            }
-            else if (sig == SIGTRAP) {
+            if (sig == SIGTRAP) {
                 if (event == PTRACE_EVENT_FORK ||
                     event == PTRACE_EVENT_VFORK ||
                     event == PTRACE_EVENT_CLONE) {
@@ -152,15 +158,59 @@ void trace_child(pid_t pid) {
     }
 }
 
+void print_usage(const char *program_name) {
+    fprintf(stderr, "Usage:\n");
+    fprintf(stderr, "  %s [-v 0|1] <filename>          - set/remove bitX attribute on file\n", program_name);
+    fprintf(stderr, "  %s <program> [args...]          - launch program with bitX control\n", program_name);
+    fprintf(stderr, "\nOptions:\n");
+    fprintf(stderr, "  -v 0|1             Value: 1 to set, 0 to remove attribute\n");
+    fprintf(stderr, "\nExamples:\n");
+    fprintf(stderr, "  %s /tmp/file.txt              # Set bitX=1 on file\n", program_name);
+    fprintf(stderr, "  %s -v 1 /tmp/file.txt         # Set bitX=1 on file\n", program_name);
+    fprintf(stderr, "  %s -v 0 /tmp/file.txt         # Remove bitX from file\n", program_name);
+    fprintf(stderr, "  %s /bin/touch /tmp/test.txt   # Launch program\n", program_name);
+}
+
 int main(int argc, char **argv) {
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s <program> [args...]\n", argv[0]);
+        print_usage(argv[0]);
         exit(EXIT_FAILURE);
     }
 
     // Инициализируем директорию статусов
     init_status_dir();
     
+    // Проверяем, если первый аргумент -v (установка атрибута)
+    int set_attr_mode = 0;
+    int value = 1; // default value
+    const char *target = NULL;
+    
+    if (strcmp(argv[1], "-v") == 0) {
+        // Формат: bitx_launcher -v 0|1 <filename>
+        if (argc < 4) {
+            fprintf(stderr, "Error: -v requires value and filename\n");
+            print_usage(argv[0]);
+            exit(EXIT_FAILURE);
+        }
+        value = atoi(argv[2]);
+        if (value != 0 && value != 1) {
+            fprintf(stderr, "Error: -v value must be 0 or 1\n");
+            exit(EXIT_FAILURE);
+        }
+        target = argv[3];
+        set_attr_mode = 1;
+    } else if (argc == 2) {
+        // Формат: bitx_launcher <filename> (установка атрибута по умолчанию)
+        target = argv[1];
+        set_attr_mode = 1;
+    }
+    
+    // Режим установки атрибута на файл
+    if (set_attr_mode) {
+        return set_bitx_attr(target, value) == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    }
+    
+    // Режим запуска программы
     pid_t pid = fork();
     if (pid < 0) {
         perror("fork");
@@ -169,18 +219,22 @@ int main(int argc, char **argv) {
 
     if (pid == 0) {
         // Child process - the program being launched
-        char *lib_path = get_lib_path();
-        if (lib_path[0]) {
-            char *ld_preload = getenv("LD_PRELOAD");
-            char new_preload[PATH_MAX * 2];
-            
-            if (ld_preload) {
-                snprintf(new_preload, sizeof(new_preload), "%s:%s", lib_path, ld_preload);
-            } else {
-                snprintf(new_preload, sizeof(new_preload), "%s", lib_path);
-            }
-            setenv("LD_PRELOAD", new_preload, 1);
+        char *ld_preload = getenv("LD_PRELOAD");
+        char new_preload[PATH_MAX * 2];
+        
+        // Добавляем нашу библиотеку в LD_PRELOAD
+        const char *lib_path = "/usr/lib/libsetbitx.so";
+        if (access(lib_path, F_OK) != 0) {
+            // Если библиотеки нет в /usr/lib, используем относительный путь
+            lib_path = "./libsetbitx.so";
         }
+        
+        if (ld_preload) {
+            snprintf(new_preload, sizeof(new_preload), "%s:%s", lib_path, ld_preload);
+        } else {
+            snprintf(new_preload, sizeof(new_preload), "%s", lib_path);
+        }
+        setenv("LD_PRELOAD", new_preload, 1);
 
         prctl(PR_SET_PDEATHSIG, SIGKILL);
         ptrace(PTRACE_TRACEME, 0, NULL, NULL);
@@ -191,9 +245,11 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     } else {
         // Parent process - tracer
-        waitpid(pid, NULL, 0);  // Wait for SIGSTOP
+        int status;
+        waitpid(pid, &status, 0);  // Wait for SIGSTOP
         
-        set_bitX(pid, 1);  // Allow main process
+        set_bitX(pid, 1);  // Allow main process by default
+        printf("[+] Main process %d allowed (bitX=1)\n", pid);
         ptrace(PTRACE_CONT, pid, 0, 0);
         trace_child(pid);
         cleanup_status(pid);

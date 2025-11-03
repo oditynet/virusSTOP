@@ -34,7 +34,6 @@ cd linux/fs
  patch -p1 < exec.patch
  patch -p1 < namei.patch
  patch -p1 < xattr.patch
- zcat /proc/config.gz > .config
 ```
 
 Prepare_binPrm - understands that the attribute is not hanged on virus and Initram.
@@ -224,10 +223,13 @@ gcc -o bitx_launcher bitx_launcher.c
 
 # Build lib
 gcc -shared -fPIC -o libsetbitx.so set_bitx.c -ldl
+gcc -shared -fPIC -o libsetbitx.so libsetbitx.c -ldl
 
 # Run
 ./bitx_launch /bin/bash -c "touch test_file"
-getfattr -n user.bitX test_file"
+setfattr -n user.bitX -v 1 bitx_launcher"
+sudo cp libsetbitx.so /usr/lib/
+sudo cp bitx_launcher /usr/bin/
 
 ```
  He tested the installation of NVIDIA drivers. It was only required to give two programs of law:
