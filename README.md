@@ -72,7 +72,6 @@ systemd[1]: Hostname set to <viva>.
 gcc -o bitx_launcher bitx_launcher.c
 
 # Build lib
-gcc -shared -fPIC -o libsetbitx.so set_bitx.c -ldl
 gcc -shared -fPIC -o libsetbitx.so libsetbitx.c -ldl
 
 # Run
