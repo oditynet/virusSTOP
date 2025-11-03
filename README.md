@@ -24,8 +24,13 @@ I decided to try my own implementation of the mandate access in the new nucleus,
 We prepare the system:
 It is necessary to set the bits of the launch permit used by all the files used. (I put it both system utilities and my own)
 ```
-sudo find /usr/bin -xdev -type f -exec /usr/bin/setfattr -n "user.bitX" -v 1 {} \;
-sudo find /sbin -xdev -type f -exec /usr/bin/setfattr -n "user.bitX" -v 1 {} \;
+if command -v pacman >/dev/null; then
+    pacman -Qlq | while read file; do
+        if [[ -f "$file" || -d "$file" ]]; then
+            /usr/bin/setfattr -n "user.bitX" -v "1" "$file" 2>/dev/null
+        fi
+    done
+fi
 ```
 
 Used patch:
