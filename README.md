@@ -34,6 +34,7 @@ cd linux/fs
  patch -p1 < exec.patch
  patch -p1 < namei.patch
  patch -p1 < xattr.patch
+ zcat /proc/config.gz > .config
 ```
 
 Prepare_binPrm - understands that the attribute is not hanged on virus and Initram.
