@@ -15,7 +15,7 @@ All rights are protected. My idea, my realization. You can use in projects with 
 ## 📋 I can...
 
 1. Blocking the launch of programs
-2. Blocking the launch of scripts as an executable file and a file passed as an argument to the interpreter (bash, awk, sh, python and etc.) FAILED: It is not work :( May be you can do it?
+2. Blocking the launch of scripts as an executable file and a file passed as an argument to the interpreter (bash, awk, sh, python and etc.) I do it!!!
 3. You can set the attribute only through your program (work with the user.bitX attribute is blocked via setfattr )
 
 ## 🛠️ Prepare 
@@ -198,6 +198,18 @@ Now the setfattr command can set any attribute except user.bitX. It can be set v
 
 ```
 gcc -o bitx_launch bitx_launch.c
+```
+
+# Block bash/python/perl etc. scripts:
+
+The module bitX execution of the script file. For example: we launch “bash script.py” and if the script.py file does not have an execution permission bitX, then it is blocked. This function could not be fully implemented in the kernel, because arguments in functions are poorly tracked there
+
+```
+make
+sudo cp bitx.ko  /lib/modules/$(shell uname -r)/
+modprobe  /lib/modules/$(shell uname -r)/bitx.ko
+or
+echo "bitx" > /etc/modules-load.d/bitx.conf
 ```
 
 ## ☯ Problems 
