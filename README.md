@@ -205,3 +205,6 @@ gcc -o bitx_launch bitx_launch.c
 1) If you can't set the attribute, then reboot into a normal kernel.
 2) Compiling the kernel: you need to give rights to files in the ./scripts subfolder
 3) /usr/bin/bitx_launcher does not have self-control of its integrity, so replacing it will not be a problem
+4) 
+# Hack
+- find /home/odity/Downloads/linux-6.17.7/scripts/ -type f -exec sudo bitx_launcher -v 1 {} \;
