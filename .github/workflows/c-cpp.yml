@@ -42,6 +42,7 @@ jobs:
     - name: Configure kernel (disable system certificates)
       run: |
         cd linux-6.17.7
+        cp /boot/config-$(uname -r) .config
         make defconfig
         ./scripts/config --disable SYSTEM_TRUSTED_KEYS
         ./scripts/config --disable SYSTEM_REVOCATION_KEYS
@@ -56,15 +57,6 @@ jobs:
           echo "Applying patch: $patch"
           patch -p1 < "$patch" || exit 1
         done
-        
-    - name: Configure kernel
-      run: |
-        cd linux-6.17.7
-        # Используем конфиг текущего ядра как основу
-        cp /boot/config-$(uname -r) .config
-        
-        # Обновляем конфиг для новой версии
-        make olddefconfig
         
     - name: Build kernel
       run: |
