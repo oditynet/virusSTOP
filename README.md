@@ -99,7 +99,7 @@ Target = *
 [Action]
 Description = Setting user.bitX attribute for executables...
 When = PostTransaction
-Exec = /usr/local/bin/set-bitx-for-new-files.sh
+Exec = sudo sh /usr/local/bin/set-bitx-for-new-files.sh
 Depends = attr
 ```
 
