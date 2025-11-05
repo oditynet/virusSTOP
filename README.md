@@ -2,7 +2,7 @@
 <img alt="GitHub license" src="https://img.shields.io/github/license/oditynet/virusSTOP"></img>
 <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/oditynet/virusSTOP"></img>
 <img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/oditynet/virusSTOP"></img>
-![Build Status](https://github.com/oditynet/virusSTOP/actions/workflows/c-cpp.yml/badge.svg) space left on device (github problem)
+[![Build Custom Linux Kernel](https://github.com/OdityDev/virusSTOP/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/OdityDev/virusSTOP/actions/workflows/c-cpp.yml)
 
 <div align="center">
   <img src="https://github.com/oditynet/virusSTOP/blob/main/logo.png" width="250" height="auto" />
