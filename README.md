@@ -14,7 +14,7 @@ All rights are protected. My idea, my realization. You can use in projects with 
 ## 📋 I can...
 
 1. Blocking the launch of programs
-2. Blocking the launch of scripts as an executable file and a file passed as an argument to the interpreter (bash, awk, sh, python and etc.)  WARNING: This is a complex implementation. It is in development and testing.
+2. Blocking the launch of scripts as an executable file and a file passed as an argument to the interpreter (bash, awk, sh, python and etc.) FAILED: It is not work :( May be you can do it?
 3. You can set the attribute only through your program (work with the user.bitX attribute is blocked via setfattr )
 
 ## 🛠️ Prepare 
@@ -60,7 +60,7 @@ In the FSTAB for EXT4, add support for 'user_xattr' on and reboot.
 Now I create a program that has a maxilled priority will allow you to install anything from under the system:
 
 
-In xattr.c i add in  white list bitx_launcher and systemd because it wac set bitX 
+In xattr.c i add in  white list bitx_launcher and systemd because it was set bitX 
 ```
 systemd[1]: Hostname set to <viva>.
 авг 07 10:42:47 viva kernel: Unauthorized attempt to set user.bitX from /usr/lib/systemd/systemd
