@@ -1,10 +1,6 @@
 name: Build Custom Linux Kernel
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:  # Ручной запуск
 
 jobs:
@@ -40,6 +36,9 @@ jobs:
       run: |
         wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.17.7.tar.xz
         tar -xf linux-6.17.7.tar.xz
+        sudo rm -rf linux-6.17.7.tar.xz
+        sudo apt-get autoremove -y
+        sudo apt-get clean
         cd linux-6.17.7
         
     - name: Configure kernel (disable system certificates)
