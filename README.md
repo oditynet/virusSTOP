@@ -104,9 +104,10 @@ Depends = attr
 ```
 
 ```
-#/usr/local/bin/set-bitx-for-new-files.sh
+sudo chmod +x /usr/local/bin/set-bitx-for-new-files.sh
+```
 
-
+```
 #!/bin/bash
 # Лог файл
 LOG_FILE="/var/log/bitx-setup.log"
