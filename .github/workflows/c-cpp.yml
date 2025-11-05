@@ -43,9 +43,10 @@ jobs:
       run: |
         cd linux-6.17.7
         cp /boot/config-$(uname -r) .config
-        make defconfig
+        make olddefconfig
         ./scripts/config --disable SYSTEM_TRUSTED_KEYS
         ./scripts/config --disable SYSTEM_REVOCATION_KEYS
+        make olddefconfig
     - name: Apply patches
       run: |
         cd linux-6.17.7/fs
