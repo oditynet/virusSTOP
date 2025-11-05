@@ -1,0 +1,93 @@
+name: Build Custom Linux Kernel
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Ручной запуск
+
+jobs:
+  build-kernel:
+    runs-on: ubuntu-22.04
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install dependencies
+      run: |
+        sudo apt-get install -y \
+          build-essential \
+          libncurses-dev \
+          bison \
+          flex \
+          make \
+          gcc \
+          libssl-dev \
+          libelf-dev \
+          bc \
+          git \
+          wget \
+          cpio \
+          kmod \
+          rsync
+        
+    - name: Download kernel source
+      run: |
+        wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.17.7.tar.xz
+        tar -xf linux-6.17.7.tar.xz
+        cd linux-6.6.30
+        
+    - name: Apply patches
+      run: |
+        cd linux-6.17.7/fs
+        # Копируем патчи из репозитория
+        cp ../../*.patch ./
+        
+        # Применяем патчи
+        for patch in *.patch; do
+          echo "Applying patch: $patch"
+          patch -p1 < "$patch" || exit 1
+        done
+        
+    - name: Configure kernel
+      run: |
+        cd linux-6.17.7
+        # Используем конфиг текущего ядра как основу
+        cp /boot/config-$(uname -r) .config
+        
+        # Обновляем конфиг для новой версии
+        make olddefconfig
+        
+    - name: Build kernel
+      run: |
+        cd linux-6.17.7
+        # Собираем ядро (ограничиваем параллельные задачи чтобы не превысить лимиты)
+        make -j2
+        
+    - name: Build kernel modules
+      run: |
+        cd linux-6.17.7
+        make modules -j2
+        
+    - name: Install kernel (simulated)
+      run: |
+        cd linux-6.17.7
+        # В GitHub Actions мы не можем реально установить ядро
+        # Но можем создать пакет для дальнейшего использования
+        mkdir -p kernel-package
+        cp arch/x86/boot/bzImage kernel-package/vmlinuz-custom
+        make modules_install INSTALL_MOD_PATH=kernel-package
+        
+        # Создаем архив с результатами
+        tar -czf kernel-build.tar.gz kernel-package/
+        
+    - name: Upload kernel artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: custom-kernel-build
+        path: |
+          linux-6.17.7/kernel-build.tar.gz
+          linux-6.17.7/.config
+        retention-days: 30
