@@ -10,6 +10,9 @@ on:
 jobs:
   build-kernel:
     runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        resources: [large]
     
     steps:
     - name: Checkout repository
