@@ -196,9 +196,18 @@ Danger: in allowlist trusted_processes do NOT insert bask, perl and etc.
 
 ## ☯ Problems 
 
-1) If you can't set the attribute, then reboot into a normal kernel.
+1) (profit +) If you can't set the attribute, then reboot into a normal kernel.
 2) Compiling the kernel: you need to give rights to files in the ./scripts subfolder
 3) /usr/bin/bitx_launcher does not have self-control of its integrity, so replacing it will not be a problem
-4) 
+4) for example mc crash if will read a file without attribute.
+5)
+```
+file /tmp/2            
+/tmp/2: empty
+sh -c "file /tmp/2"    
+zsh: Отказано в доступе: sh
+```
+
+
 # Hack
 - ```find /home/odity/Downloads/linux-6.17.7/scripts/ -type f -exec sudo bitx_launcher -v 1 {} \;```
