@@ -99,7 +99,7 @@ Target = *
 [Action]
 Description = Setting user.bitX attribute for executables...
 When = PostTransaction
-Exec = sudo sh /usr/local/bin/set-bitx-for-new-files.sh
+Exec = /usr/local/bin/set-bitx-for-new-files.sh
 Depends = attr
 ```
 
@@ -109,48 +109,40 @@ sudo chmod +x /usr/local/bin/set-bitx-for-new-files.sh
 
 ```
 #!/bin/bash
-# Лог файл
-LOG_FILE="/var/log/bitx-setup.log"
-TODAY=$(date +%Y-%m-%d)
 
-{
-    echo "=== $(date) ==="
-    echo "Setting bitX attribute on packages updated/installed today ($TODAY)"
-    
-    # Получаем список пакетов, которые были обновлены или установлены сегодня
-    UPDATED_PKGS=$(grep "\[ALPM\] \(upgraded\|installed\) " /var/log/pacman.log | grep "$TODAY" | \
-                  awk '{print $4}' | sort -u)
-    
-    if [[ -z "$UPDATED_PKGS" ]]; then
-        echo "No packages were updated or installed today."
-        exit 0
-    fi
-    
-    echo "Packages to process:"
-    echo "$UPDATED_PKGS"
-    echo ""
-    
-    # Обрабатываем каждый пакет
-    for pkg in $UPDATED_PKGS; do
-        echo "Processing package: $pkg"
-        
-        # Получаем список файлов пакета
-        pacman -Ql "$pkg" 2>/dev/null | while read pkg_name file; do
-            if [[ -f "$file" || -d "$file" ]]; then
-                # Устанавливаем атрибут bitX=1
-                if /usr/bin/setfattr -n "user.bitX" -v "1" "$file" 2>/dev/null; then
-                    echo "  SET: $file"
-                else
-                    echo "  ERROR: $file"
-                fi
+# Логирование
+LOG_FILE="/tmp/pacman-bitx.log"
+echo "$(date) - Starting bitX attribute processing" >> "$LOG_FILE"
+
+# Получаем текущую дату в формате, как в pacman.log (например: [2023-10-01])
+TODAY=$(date +'%Y-%m-%d')
+
+# Извлекаем пакеты, установленные/обновлённые сегодня
+PACMAN_NEW_PKGS=$(grep -E "(installed|upgraded)" /var/log/pacman.log | grep $TODAY|awk '{print $4}' | sort -u)
+
+if [[ -z "$PACMAN_NEW_PKGS" ]]; then
+    echo "$(date) - No new packages found for today" >> "$LOG_FILE"
+    exit 0
+fi
+
+echo "$(date) - Processing packages: $PACMAN_NEW_PKGS" >> "$LOG_FILE"
+
+# Обработка только новых пакетов
+for package in $PACMAN_NEW_PKGS; do
+    # Получаем список файлов пакета
+    pacman -Qlq "$package" 2>/dev/null | while read -r file; do
+        # Проверяем, что файл существует и является исполняемым
+        if [[ -f "$file" && -x "$file" ]]; then
+            # Проверяем, не установлен ли уже атрибут
+            if ! getfattr -n user.bitX "$file" &>/dev/null; then
+                echo "Setting bitX for: $file" >> "$LOG_FILE"
+                sudo /usr/bin/bitx_launcher -v 1 "$file"
             fi
-        done
+        fi
     done
-    
-    echo "Completed processing $(echo "$UPDATED_PKGS" | wc -w) packages."
-    echo ""
-} >> "$LOG_FILE" 2>&1
+done
 
+echo "$(date) - Completed" >> "$LOG_FILE"
 ```
 
 If we want to prohibit changes to the user.bitX attribute, we need to patch the function in the fs/xattr.c file to the following form:
