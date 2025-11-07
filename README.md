@@ -185,7 +185,8 @@ The module bitX execution of the script file. For example: we launch “bash scr
 
 ```
 make
-sudo cp bitx.ko  /lib/modules/$(shell uname -r)/
+sudo cp bitx.ko  /lib/modules/$(shell uname -r)/kernel/drivers/misc/
+sudo depmod -a
 sudo insmod bitx.ko trusted_processes="pacman,yay,make"
 or
 sudo echo "bitx" > /etc/modules-load.d/bitx.conf
