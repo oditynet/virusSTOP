@@ -8,6 +8,8 @@ CONFIG_SYSTEM_TRUSTED_KEYS=""
 
 all:
 	$(MAKE) -C $(KERNEL_PATH) M=$(PWD) modules -j$(shell nproc)
+	sudo cp bitx.ko /lib/modules/$(shell uname -r)/bitx.ko
+	sudo insmod bitx.ko trusted_processes="pacman,yay"
 
 clean:
 	$(MAKE) -C $(KERNEL_PATH) M=$(PWD) clean
