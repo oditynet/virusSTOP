@@ -199,10 +199,12 @@ The module bitX execution of the script file. For example: we launch “bash scr
 ```
 make
 sudo cp bitx.ko  /lib/modules/$(shell uname -r)/
-sudo insmod bitx.ko trusted_processes="pacman,yay"
+sudo insmod bitx.ko trusted_processes="pacman,yay,make"
 or
 echo "bitx" > /etc/modules-load.d/bitx.conf
 ```
+
+Danger: in allowlist trusted_processes do NOT insert bask, perl and etc.
 
 ## ☯ Problems 
 
