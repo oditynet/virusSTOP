@@ -110,23 +110,13 @@ sudo chmod +x /usr/local/bin/set-bitx-for-new-files.sh
 ```
 #!/bin/bash
 
-# Логирование
-LOG_FILE="/tmp/pacman-bitx.log"
-echo "$(date) - Starting bitX attribute processing" >> "$LOG_FILE"
-
 # Получаем текущую дату в формате, как в pacman.log (например: [2023-10-01])
 TODAY=$(date +'%Y-%m-%d')
-
 # Извлекаем пакеты, установленные/обновлённые сегодня
 PACMAN_NEW_PKGS=$(grep -E "(installed|upgraded)" /var/log/pacman.log | grep $TODAY|awk '{print $4}' | sort -u)
-
 if [[ -z "$PACMAN_NEW_PKGS" ]]; then
-    echo "$(date) - No new packages found for today" >> "$LOG_FILE"
     exit 0
 fi
-
-echo "$(date) - Processing packages: $PACMAN_NEW_PKGS" >> "$LOG_FILE"
-
 # Обработка только новых пакетов
 for package in $PACMAN_NEW_PKGS; do
     # Получаем список файлов пакета
@@ -135,14 +125,11 @@ for package in $PACMAN_NEW_PKGS; do
         if [[ -f "$file" && -x "$file" ]]; then
             # Проверяем, не установлен ли уже атрибут
             if ! getfattr -n user.bitX "$file" &>/dev/null; then
-                echo "Setting bitX for: $file" >> "$LOG_FILE"
                 sudo /usr/bin/bitx_launcher -v 1 "$file"
             fi
         fi
     done
 done
-
-echo "$(date) - Completed" >> "$LOG_FILE"
 ```
 
 If we want to prohibit changes to the user.bitX attribute, we need to patch the function in the fs/xattr.c file to the following form:
