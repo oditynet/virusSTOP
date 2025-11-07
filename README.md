@@ -199,7 +199,7 @@ The module bitX execution of the script file. For example: we launch “bash scr
 ```
 make
 sudo cp bitx.ko  /lib/modules/$(shell uname -r)/
-modprobe  /lib/modules/$(shell uname -r)/bitx.ko
+sudo insmod bitx.ko trusted_processes="pacman,yay"
 or
 echo "bitx" > /etc/modules-load.d/bitx.conf
 ```
