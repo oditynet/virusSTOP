@@ -310,6 +310,64 @@ static int is_interpreter(const char *name)
 #ifdef PTREGS_SYSCALL_STUBS
 static asmlinkage long (*real_execve)(struct pt_regs *regs);
 
+// Функция для проверки, является ли путь существующим файлом
+static int is_existing_file(const char *path)
+{
+    struct path kpath;
+    int error;
+    struct kstat stat;
+    
+    // Пытаемся найти путь
+    error = kern_path(path, LOOKUP_FOLLOW, &kpath);
+    if (error) {
+        return 0; // Не существует
+    }
+    
+    // Получаем информацию о файле
+    error = vfs_getattr(&kpath, &stat, STATX_MODE, AT_STATX_SYNC_AS_STAT);
+    if (error) {
+        path_put(&kpath);
+        return 0;
+    }
+    
+    path_put(&kpath);
+    
+    // Проверяем, что это обычный файл
+    return S_ISREG(stat.mode);
+}
+
+// Функция для проверки, является ли строка путем к файлу
+static int is_likely_file_path(const char *str)
+{
+    // Игнорируем строки, которые явно не являются путями
+    if (str[0] == '\'' || str[0] == '"' || str[0] == '-')
+        return 0;
+    
+    // Проверяем абсолютные пути
+    if (str[0] == '/')
+        return 1;
+    
+    // Проверяем относительные пути с ./ или ../
+    if (str[0] == '.' && (str[1] == '/' || (str[1] == '.' && str[2] == '/')))
+        return 1;
+    
+    // Проверяем пути с ~/ (домашняя директория)
+    if (str[0] == '~' && str[1] == '/')
+        return 1;
+    
+    // Проверяем пути, содержащие / но не начинающиеся с специальных символов
+    if (strchr(str, '/') != NULL) {
+        // Игнорируем строки, которые выглядят как регулярные выражения или команды
+        if (strstr(str, "[") || strstr(str, "]") || strstr(str, "|") || 
+            strstr(str, "*") || strstr(str, "?") || strstr(str, "\\")) {
+            return 0;
+        }
+        return 1;
+    }
+    
+    return 0;
+}
+
 static asmlinkage long bitx_execve(struct pt_regs *regs)
 {
     const char __user *filename = (const char __user *)regs->di;
@@ -350,15 +408,19 @@ static asmlinkage long bitx_execve(struct pt_regs *regs)
 	// Разбиваем строку на подстроки по пробелам
 	saveptr = arg_copy;
 	while ((token = strsep(&saveptr, " ")) != NULL && !block) {
-	    // Проверяем только абсолютные пути
-	    if (token[0] == '/' && strlen(token) > 1) {
-		bitx = check_bitx(token);
-		//pr_info("Checking file: %s, bitX=%d\n", token, bitx);
-		if (bitx == 0 || bitx == -1) {
-		    pr_warn("BLOCKED: %s bitX=%d (from arg: %s)\n", token, bitx, kargs[i]);
-		    block = 1;
-		    break;
+	    // Проверяем, похожа ли строка на путь к файлу
+	    if (is_likely_file_path(token)) {
+		// Проверяем, существует ли файл на самом деле
+		if (is_existing_file(token)) {
+		    bitx = check_bitx(token);
+		    //pr_info("Checking file: %s, bitX=%d\n", token, bitx);
+		    if (bitx == 0 || bitx == -1) {
+			pr_warn("BLOCKED: %s bitX=%d (from arg: %s)\n", token, bitx, kargs[i]);
+			block = 1;
+			break;
+		    }
 		}
+		// Если файл не существует, пропускаем проверку
 	    }
 	}
 	
