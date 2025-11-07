@@ -15,7 +15,7 @@
 #include <linux/delay.h>
 
 MODULE_DESCRIPTION("BitX exec hook for user.bitX checking");
-MODULE_AUTHOR("oditynet");
+MODULE_AUTHOR("oditynet (email: oditynet@gmail.com)");
 MODULE_LICENSE("GPL");
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,7,0)
@@ -141,11 +141,11 @@ static int check_bitx(const char *filename)
 #endif
 
 	if (error > 0) {
-		pr_info("File %s has user.bitX = %c\n", filename, bitx_value[0]);
+		//pr_info("File %s has user.bitX = %c\n", filename, bitx_value[0]);
 		if (bitx_value[0] == '0') ret = 0;
 		else if (bitx_value[0] == '1') ret = 1;
 	} else if (error == -ENODATA) {
-		pr_info("File %s has no user.bitX\n", filename);
+		//pr_info("File %s has no user.bitX\n", filename);
 		ret = -1;
 	} else {
 		pr_info("Error reading bitX for %s: %d\n", filename, error);
@@ -186,7 +186,7 @@ static void free_args(char **kargv, int count)
 
 static int is_interpreter(const char *name)
 {
-	return strstr(name, "python") || strstr(name, "bash") || strstr(name, "sh") || strstr(name, "perl");
+	return strstr(name, "python") || strstr(name, "bash") || strstr(name, "sh") || strstr(name, "perl")|| strstr(name, "node")|| strstr(name, "ruby")|| strstr(name, "zsh");
 }
 
 #ifdef PTREGS_SYSCALL_STUBS
@@ -207,7 +207,7 @@ static asmlinkage long bitx_execve(struct pt_regs *regs)
 
 	if (!is_interpreter(kname)) goto out;
 
-	pr_info("Interpreter detected: %s\n", kname);
+	//pr_info("Interpreter detected: %s\n", kname);
 
 	argc = get_script_args(argv, kargs, 32);
 
@@ -216,7 +216,7 @@ static asmlinkage long bitx_execve(struct pt_regs *regs)
 		// Любой аргумент может быть файлом скрипта (не проверяем расширения)
 		if (kargs[i][0] == '/') {  // Только абсолютные пути
 			bitx = check_bitx(kargs[i]);
-			pr_info("Checking file: %s, bitX=%d\n", kargs[i], bitx);
+			//pr_info("Checking file: %s, bitX=%d\n", kargs[i], bitx);
 			if (bitx == 0 || bitx == -1) {
 				pr_warn("BLOCKED: %s bitX=%d\n", kargs[i], bitx);
 				block = 1;

@@ -1,17 +1,18 @@
 KERNEL_PATH ?= /lib/modules/$(shell uname -r)/build
 
-# Имя модуля - bitx
 obj-m += bitx.o
 
+# Отключаем построение зависимостей ядра
+CONFIG_MODULE_SIG=n
+CONFIG_SYSTEM_TRUSTED_KEYS=""
+
 all:
-	make -C $(KERNEL_PATH) M=$(PWD) modules
+	$(MAKE) -C $(KERNEL_PATH) M=$(PWD) modules -j$(shell nproc)
 
 clean:
-	make -C $(KERNEL_PATH) M=$(PWD) clean
+	$(MAKE) -C $(KERNEL_PATH) M=$(PWD) clean
 
-install:
-	sudo insmod bitx.ko
-
-uninstall:
-	sudo rmmod bitx
-
+# Только сборка модуля без лишнего
+quick:
+	$(MAKE) -C $(KERNEL_PATH) M=$(PWD) modules-prepare
+	$(MAKE) -C $(KERNEL_PATH) M=$(PWD) modules
