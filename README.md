@@ -189,7 +189,7 @@ sudo cp bitx.ko  /lib/modules/$(shell uname -r)/
 sudo insmod bitx.ko trusted_processes="pacman,yay,make"
 or
 sudo echo "bitx" > /etc/modules-load.d/bitx.conf
-sudo echo "options bitx trusted_processes=\"pacman,yay,makepkg,make\"" >  /etc/modprobe.d/bitx.conf
+sudo echo "options bitx trusted_processes=\"pacman,yay,make\"" >  /etc/modprobe.d/bitx.conf
 ```
 
 Danger: in allowlist trusted_processes do NOT insert bask, perl and etc.
